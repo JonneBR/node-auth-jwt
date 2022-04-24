@@ -17,6 +17,45 @@ app.get("/", (req, res) => {
   res.status(200).json({ message: "Conectado" });
 });
 
+//Private Route
+app.get("/user/:id", checkToken, async (req, res) => {
+  const id = req.params.id;
+
+  //check if user exists
+  const user = await User.findById(id, "-password");
+
+  if (!user)
+    return res.status(404).json({ message: "Usuário não encontrado!" });
+
+  return res.status(201).json({ user });
+});
+
+//Middware
+function checkToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(404).json({ message: "Acesso negado!" });
+  }
+
+  try {
+    const secret = process.env.SECRET;
+    jwt.verify(token, secret);
+    next();
+  } catch (error) {
+    return res.status(500).json({ message: "Token inválido!" });
+  }
+}
+
+app.get("/user", async (req, res) => {
+  const user = await User.find({});
+
+  if (user) return res.status(201).json({ user });
+
+  return res.status(404).json({ message: "Usuário não encontrado!" });
+});
+
 //Register User
 app.post("/auth/register", async (req, res) => {
   const { name, email, password, confirmPassword } = req.body;
